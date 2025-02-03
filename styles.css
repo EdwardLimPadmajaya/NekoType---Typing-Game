@@ -53,6 +53,9 @@ div#game{
     overflow: hidden;
     position: relative
 }
+div#game:focus {
+    outline: 0;
+}
 
 #words {
     filter: blur(5px);
@@ -86,4 +89,30 @@ div.word {
 
 .letter.incorrect {
     color: #f00;
+}
+
+@keyframes blink {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+#cursor {
+    display: none;
+    width: 2px;
+    height: 1.6rem;
+    background: var(--primaryColor);
+    position: fixed;
+    top: 198px;
+    left: 18px;
+    animation: blink .3s infinite;
+}
+#game:focus #cursor {
+    display: block;
 }
