@@ -113,3 +113,12 @@ div.word {
     left: 18px;
     animation: blink .3s infinite;
 }
+
+#game.over #words{
+    opacity: .5;
+    filter: blur(0);
+}
+
+#game.over #focus-error {
+    display: none;
+}
