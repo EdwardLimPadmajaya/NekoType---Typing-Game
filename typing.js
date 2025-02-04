@@ -3,7 +3,6 @@ const wordsCount = words.length;
 const gameTime = 30 * 1000;
 window.time = null;
 
-
 function addClass(el, name) {
     el.className += ' ' + name;
 }
@@ -11,6 +10,7 @@ function addClass(el, name) {
 function removeClass(el, name) {
     el.className = el.className.replace(name, '');
 }
+
 function randomWord() {
     const randomIndex = Math.floor(Math.random() * words.length);
     return words[randomIndex];
@@ -20,22 +20,52 @@ function formatWord(word) {
     return `<div class="word"><span class="letter">${word.split('').join('</span><span class="letter">')}</span></div>`;
 }
 
-function newGame() {
-    document.getElementById('words').innerHTML = '';
-    for(let i = 0; i < 200; i++) {
-        document.getElementById('words').innerHTML += formatWord(randomWord());
+/**
+ * Initializes a new game.
+ * @param {boolean} [shouldFocus=false] - If true, focus the game area.
+ */
+function newGame(shouldFocus = false) {
+    const gameElement = document.getElementById('game');
+    const wordsContainer = document.getElementById('words');
+    const cursor = document.getElementById('cursor');
+
+    // Remove the "over" class so input is allowed.
+    gameElement.classList.remove('over');
+
+    // Reset game-related variables.
+    window.timer = null;
+    window.gameStart = null;
+
+    // Reset any styles (e.g., margin reset for scrolling words).
+    wordsContainer.style.marginTop = '0px';
+
+    // Hide the cursor until the first keypress.
+    cursor.style.display = 'none';
+
+    // Clear previous words and add new words.
+    wordsContainer.innerHTML = '';
+    for (let i = 0; i < 200; i++) {
+        wordsContainer.innerHTML += formatWord(randomWord());
     }
+
+    // Mark the first word and letter as "current".
     addClass(document.querySelector('.word'), 'current');
     addClass(document.querySelector('.letter'), 'current');
+
+    // Reset the info display to show the full game time.
     document.getElementById('info').innerHTML = (gameTime / 1000) + '';
-    window.timer = null;
+
+    // Focus the game area only if requested.
+    if (shouldFocus) {
+        gameElement.focus();
+    }
 }
 
 function getWpm() {
-    const words = [...document.querySelectorAll('.word')];
+    const wordElements = [...document.querySelectorAll('.word')];
     const lastTypedWord = document.querySelector('.word.current');
-    const lastTypedWordIndex = words.indexOf(lastTypedWord) + 1;
-    const typedWords = words.slice(0, lastTypedWordIndex);
+    const lastTypedWordIndex = wordElements.indexOf(lastTypedWord) + 1;
+    const typedWords = wordElements.slice(0, lastTypedWordIndex);
     const correctWords = typedWords.filter(word => {
         const letters = [...word.children];
         const incorrectLetters = letters.filter(letter => letter.className.includes('incorrect'));
@@ -47,7 +77,9 @@ function getWpm() {
 
 function gameOver() {
     clearInterval(window.timer);
-    addClass(document.getElementById('game'), 'over');
+    const gameElement = document.getElementById('game');
+    const cursor = document.getElementById('cursor');
+    addClass(gameElement, 'over');
     cursor.style.display = 'block';
     const result = getWpm();
     document.getElementById('info').innerHTML = `WPM: ${result}`;
@@ -63,17 +95,18 @@ document.getElementById('game').addEventListener('keyup', ev => {
     const isBackspace = key === 'Backspace';
     const isFirstLetter = currentLetter === currentWord.firstChild;
 
-    if(document.querySelector('#game.over')) {
+    // Prevent input if game is over.
+    if (document.querySelector('#game.over')) {
         return;
     }
-    console.log({key, expectedLetter});
+    console.log({ key, expectedLetter });
 
-    if(!window.timer && isLetter) {
+    if (!window.timer && isLetter) {
         window.timer = setInterval(() => {
-            if(!window.gameStart) {
-                window.gameStart = (new Date()).getTime();
+            if (!window.gameStart) {
+                window.gameStart = Date.now();
             }
-            const currentTime = (new Date()).getTime();
+            const currentTime = Date.now();
             const msPassed = currentTime - window.gameStart;
             const sPassed = Math.round(msPassed / 1000);
             const sLeft = Math.round((gameTime / 1000) - sPassed);
@@ -85,7 +118,7 @@ document.getElementById('game').addEventListener('keyup', ev => {
         }, 1000);
     }
 
-    // Make cursor visible on first keypress
+    // Make cursor visible on first keypress.
     const cursor = document.getElementById('cursor');
     cursor.style.display = 'block';
 
@@ -121,7 +154,7 @@ document.getElementById('game').addEventListener('keyup', ev => {
 
     if (isBackspace) {
         if (currentLetter && isFirstLetter) {
-            // make prev word current, last letter current
+            // Make previous word current; set its last letter as current.
             removeClass(currentWord, 'current');
             addClass(currentWord.previousSibling, 'current');
             removeClass(currentLetter, 'current');
@@ -130,7 +163,7 @@ document.getElementById('game').addEventListener('keyup', ev => {
             removeClass(currentWord.previousSibling.lastChild, 'correct');
         }
         if (currentLetter && !isFirstLetter) {
-            // move back one letter, invalidate letter
+            // Move back one letter, clearing its state.
             removeClass(currentLetter, 'current');
             addClass(currentLetter.previousSibling, 'current');
             removeClass(currentLetter.previousSibling, 'incorrect');
@@ -143,14 +176,14 @@ document.getElementById('game').addEventListener('keyup', ev => {
         }
     }
 
-    // move lines / words
+    // Move lines / words if necessary.
     if (currentWord.getBoundingClientRect().top > 250) {
-        const words = document.getElementById('words');
-        const margin = parseInt(words.style.marginTop || '0px');
-        words.style.marginTop = (margin - 35) + 'px';
+        const wordsContainer = document.getElementById('words');
+        const margin = parseInt(wordsContainer.style.marginTop || '0px');
+        wordsContainer.style.marginTop = (margin - 35) + 'px';
     }
 
-    // move cursor
+    // Move the cursor.
     const nextLetter = document.querySelector('.letter.current');
     const nextWord = document.querySelector('.word.current');
     cursor.style.top = (nextLetter || nextWord).getBoundingClientRect().top + 2 + 'px';
@@ -158,9 +191,9 @@ document.getElementById('game').addEventListener('keyup', ev => {
 });
 
 document.getElementById('newGameBtn').addEventListener('click', () => {
-    gameOver();
-    newGame();
+    // Start a new game and focus the game area.
+    newGame(true);
 });
 
-
-newGame();
+// Initialize the game without focusing on page load.
+newGame(false);
