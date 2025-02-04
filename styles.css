@@ -113,6 +113,3 @@ div.word {
     left: 18px;
     animation: blink .3s infinite;
 }
-#game:focus #cursor {
-    display: block;
-}
