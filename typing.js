@@ -30,10 +30,26 @@ function newGame() {
 
 }
 
+function getWpm() {
+    const words = [...document.querySelectorAll('.word')];
+    const lastTypedWord = document.querySelector('.word.current');
+    const lastTypedWordIndex = words.indexOf(lastTypedWord) + 1;
+    const typedWords = words.slice(0, lastTypedWordIndex);
+    const correctWords = typedWords.filter(word => {
+        const letters = [...word.children];
+        const incorrectLetters = letters.filter(letter => letter.className.includes('incorrect'));
+        const correctLetters = letters.filter(letter => letter.className.includes('correct'));
+        return incorrectLetters.length === 0 && correctLetters.length === letters.length;
+    });
+    return correctWords.length / gameTime * 60000;
+}
+
 function gameOver() {
     clearInterval(window.timer);
     addClass(document.getElementById('game'), 'over');
     cursor.style.display = 'block';
+    const result = getWpm();
+    document.getElementById('info').innerHTML = `WPM: ${result}`;
 }
 
 document.getElementById('game').addEventListener('keyup', ev => {
@@ -127,7 +143,7 @@ document.getElementById('game').addEventListener('keyup', ev => {
     }
 
     // move lines / words
-    if (currentWord.getBoundingClientRect().top > 320) {
+    if (currentWord.getBoundingClientRect().top > 250) {
         const words = document.getElementById('words');
         const margin = parseInt(words.style.marginTop || '0px');
         words.style.marginTop = (margin - 35) + 'px';
