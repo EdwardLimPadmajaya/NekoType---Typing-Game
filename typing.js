@@ -17,7 +17,22 @@ function randomWord() {
 }
 
 function formatWord(word) {
+    // Each letter is wrapped in its own <span>
     return `<div class="word"><span class="letter">${word.split('').join('</span><span class="letter">')}</span></div>`;
+}
+
+/**
+ * Updates the cursor position based on the current letter or word.
+ */
+function updateCursor() {
+    const cursor = document.getElementById('cursor');
+    const nextLetter = document.querySelector('.letter.current');
+    const nextWord = document.querySelector('.word.current');
+    if (nextLetter || nextWord) {
+        const rect = (nextLetter || nextWord).getBoundingClientRect();
+        cursor.style.top = rect.top + 2 + 'px';
+        cursor.style.left = rect[nextLetter ? 'left' : 'right'] + 'px';
+    }
 }
 
 /**
@@ -88,19 +103,21 @@ function gameOver() {
 document.getElementById('game').addEventListener('keyup', ev => {
     const key = ev.key;
     const currentWord = document.querySelector('.word.current');
-    const currentLetter = document.querySelector('.letter.current');
+    // currentLetter may be null if extra letters have been appended.
+    let currentLetter = document.querySelector('.letter.current');
     const expectedLetter = currentLetter?.innerHTML || ' ';
     const isLetter = key.length === 1 && key !== ' ';
     const isSpace = key === ' ';
     const isBackspace = key === 'Backspace';
     const isFirstLetter = currentLetter === currentWord.firstChild;
 
-    // Prevent input if game is over.
-    if (document.querySelector('#game.over')) {
+    // Do nothing if the game is over.
+    if(document.querySelector('#game.over')) {
         return;
     }
     console.log({ key, expectedLetter });
 
+    // Start the timer on the first valid letter.
     if (!window.timer && isLetter) {
         window.timer = setInterval(() => {
             if (!window.gameStart) {
@@ -118,10 +135,11 @@ document.getElementById('game').addEventListener('keyup', ev => {
         }, 1000);
     }
 
-    // Make cursor visible on first keypress.
+    // Make the cursor visible after the first keypress.
     const cursor = document.getElementById('cursor');
     cursor.style.display = 'block';
 
+    // Handle letter input.
     if (isLetter) {
         if (currentLetter) {
             addClass(currentLetter, key === expectedLetter ? 'correct' : 'incorrect');
@@ -130,6 +148,7 @@ document.getElementById('game').addEventListener('keyup', ev => {
                 addClass(currentLetter.nextSibling, 'current');
             }
         } else {
+            // No valid letter remains: append an extra letter.
             const incorrectLetter = document.createElement('span');
             incorrectLetter.innerHTML = key;
             incorrectLetter.className = 'letter incorrect extra';
@@ -137,6 +156,7 @@ document.getElementById('game').addEventListener('keyup', ev => {
         }
     }
 
+    // Handle Space key.
     if (isSpace) {
         if (expectedLetter !== ' ') {
             const lettersToInvalidate = [...document.querySelectorAll('.word.current .letter:not(.correct)')];
@@ -152,42 +172,60 @@ document.getElementById('game').addEventListener('keyup', ev => {
         addClass(currentWord.nextSibling.firstChild, 'current');
     }
 
+    // Handle Backspace.
     if (isBackspace) {
-        if (currentLetter && isFirstLetter) {
-            // Make previous word current; set its last letter as current.
-            removeClass(currentWord, 'current');
-            addClass(currentWord.previousSibling, 'current');
-            removeClass(currentLetter, 'current');
-            addClass(currentWord.previousSibling.lastChild, 'current');
-            removeClass(currentWord.previousSibling.lastChild, 'incorrect');
-            removeClass(currentWord.previousSibling.lastChild, 'correct');
-        }
-        if (currentLetter && !isFirstLetter) {
-            // Move back one letter, clearing its state.
-            removeClass(currentLetter, 'current');
-            addClass(currentLetter.previousSibling, 'current');
-            removeClass(currentLetter.previousSibling, 'incorrect');
-            removeClass(currentLetter.previousSibling, 'correct');
-        }
+        // If no current letter exists, it may be because extra letters were appended.
         if (!currentLetter) {
-            addClass(currentWord.lastChild, 'current');
-            removeClass(currentWord.lastChild, 'incorrect');
-            removeClass(currentWord.lastChild, 'correct');
+            let lastLetter = currentWord.lastChild;
+            if (lastLetter && lastLetter.className.includes('extra')) {
+                lastLetter.remove();
+                updateCursor();
+                return;
+            }
+        }
+        // If the current letter is an extra letter, remove it.
+        if (currentLetter && currentLetter.className.includes('extra')) {
+            let prev = currentLetter.previousSibling;
+            currentLetter.remove();
+            if (prev) {
+                addClass(prev, 'current');
+                removeClass(prev, 'incorrect');
+                removeClass(prev, 'correct');
+            }
+            updateCursor();
+            return;
+        }
+        // Normal Backspace behavior.
+        if (currentLetter) {
+            if (isFirstLetter) {
+                removeClass(currentWord, 'current');
+                let prevWord = currentWord.previousSibling;
+                addClass(prevWord, 'current');
+                removeClass(currentLetter, 'current');
+                addClass(prevWord.lastChild, 'current');
+                removeClass(prevWord.lastChild, 'incorrect');
+                removeClass(prevWord.lastChild, 'correct');
+            } else {
+                removeClass(currentLetter, 'current');
+                addClass(currentLetter.previousSibling, 'current');
+                removeClass(currentLetter.previousSibling, 'incorrect');
+                removeClass(currentLetter.previousSibling, 'correct');
+            }
+        } else {
+            // Fallback: if there is no current letter, check the last letter.
+            let lastLetter = currentWord.lastChild;
+            if (lastLetter && lastLetter.className.includes('extra')) {
+                lastLetter.remove();
+            } else if (lastLetter) {
+                addClass(lastLetter, 'current');
+                removeClass(lastLetter, 'incorrect');
+                removeClass(lastLetter, 'correct');
+            }
         }
     }
 
-    // Move lines / words if necessary.
-    if (currentWord.getBoundingClientRect().top > 250) {
-        const wordsContainer = document.getElementById('words');
-        const margin = parseInt(wordsContainer.style.marginTop || '0px');
-        wordsContainer.style.marginTop = (margin - 35) + 'px';
-    }
-
-    // Move the cursor.
-    const nextLetter = document.querySelector('.letter.current');
-    const nextWord = document.querySelector('.word.current');
-    cursor.style.top = (nextLetter || nextWord).getBoundingClientRect().top + 2 + 'px';
-    cursor.style.left = (nextLetter || nextWord).getBoundingClientRect()[nextLetter ? 'left' : 'right'] + 'px';
+    // Always update the cursor at the end.
+    updateCursor();
 });
 
 document.getElementById('newGameBtn').addEventListener('click', () => {
