@@ -95,6 +95,14 @@ document.getElementById('game').addEventListener('keyup', ev => {
             removeClass(currentWord.lastChild, 'correct');
         }
     }
+
+    //moving lines / words
+    if(currentWord.getBoundingCilentRect().top > 250) {
+        const words = document.getElementById('words');
+        const margin = parseInt(words.style.marginTop || '0px');
+        words.style.marginTop = (margin - 35) + 'px';
+    }
+
     // Move cursor
     const nextLetter = document.querySelector('.letter.current');
     const nextWord = document.querySelector('.word.current');
