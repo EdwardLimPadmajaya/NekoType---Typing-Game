@@ -1,4 +1,8 @@
 const words = 'apple bicycle cloud dog elephant frog guitar hammock igloo jelly kettle lemon mountain notebook orange pencil queen rabbit sandwich table umbrella volcano window xylophone yellow zebra'.split(' ');
+const wordsCount = words.length;
+const gameTime = 30 * 1000;
+window.time = null;
+
 
 function addClass(el, name) {
     el.className += ' ' + name;
@@ -26,6 +30,10 @@ function newGame() {
 
 }
 
+function gameOver() {
+
+}
+
 document.getElementById('game').addEventListener('keyup', ev => {
     const key = ev.key;
     const currentWord = document.querySelector('.word.current');
@@ -37,6 +45,23 @@ document.getElementById('game').addEventListener('keyup', ev => {
     const isFirstLetter = currentLetter === currentWord.firstChild;
 
     console.log({key, expectedLetter});
+
+    if(!window.timer && isLetter) {
+        window.timer = setInterval(() => {
+            if(!window.gameStart) {
+                window.gameStart = (new Date()).getTime();
+            }
+            const currentTime = (new Date()).getTime();
+            const msPassed = currentTime - window.gameStart;
+            const sPassed = Math.round(msPassed / 1000);
+            const sLeft = (gameTime / 1000) - sPassed;
+            if (sLeft <= 0) {
+                gameOver();
+                return;
+            }
+            document.getElementById('info').innerHTML = sLeft + '';
+        }, 1000);
+    }
 
     // Make cursor visible on first keypress
     const cursor = document.getElementById('cursor');
