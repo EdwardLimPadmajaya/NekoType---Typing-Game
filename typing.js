@@ -3,6 +3,10 @@ const wordsCount = words.length;
 const gameTime = 30 * 1000;
 window.time = null;
 
+let startTime = 0;
+let timeElapsed = 0;
+let timerRunning = false;
+
 function addClass(el, name) {
     el.className += ' ' + name;
 }
@@ -33,6 +37,34 @@ function updateCursor() {
         cursor.style.top = rect.top + 2 + 'px';
         cursor.style.left = rect[nextLetter ? 'left' : 'right'] + 'px';
     }
+}
+
+function startTimer() {
+    // Capture the initial start time
+    startTime = Date.now();
+    timerRunning = true;
+    updateTimer();
+}
+
+function updateTimer() {
+    if (!timerRunning) return;
+
+    const currentTime = Date.now();
+    const msPassed = currentTime - startTime + timeElapsed;
+    const sPassed = Math.round(msPassed / 1000);
+    const sLeft = Math.max(0, Math.round((gameTime / 1000) - sPassed));
+
+    // Update timer display
+    document.getElementById('info').innerHTML = sLeft;
+
+    // Check if time is up
+    if (sLeft <= 0) {
+        gameOver();
+        return;
+    }
+
+    // Call the next frame for the timer update
+    requestAnimationFrame(updateTimer);
 }
 
 /**
@@ -103,43 +135,29 @@ function gameOver() {
 document.getElementById('game').addEventListener('keyup', ev => {
     const key = ev.key;
     const currentWord = document.querySelector('.word.current');
-    // currentLetter may be null if extra letters have been appended.
     let currentLetter = document.querySelector('.letter.current');
     const expectedLetter = currentLetter?.innerHTML || ' ';
     const isLetter = key.length === 1 && key !== ' ';
     const isSpace = key === ' ';
     const isBackspace = key === 'Backspace';
-    const isFirstLetter = currentLetter === currentWord.firstChild;
 
     // Do nothing if the game is over.
-    if(document.querySelector('#game.over')) {
+    if (document.querySelector('#game.over')) {
         return;
     }
+
     console.log({ key, expectedLetter });
 
-    // Start the timer on the first valid letter.
-    if (!window.timer && isLetter) {
-        window.timer = setInterval(() => {
-            if (!window.gameStart) {
-                window.gameStart = Date.now();
-            }
-            const currentTime = Date.now();
-            const msPassed = currentTime - window.gameStart;
-            const sPassed = Math.round(msPassed / 1000);
-            const sLeft = Math.round((gameTime / 1000) - sPassed);
-            if (sLeft < 0) {
-                gameOver();
-                return;
-            }
-            document.getElementById('info').innerHTML = sLeft + '';
-        }, 1000);
+    // Start the timer on the first valid letter
+    if (!timerRunning && isLetter) {
+        startTimer();
     }
 
     // Make the cursor visible after the first keypress.
     const cursor = document.getElementById('cursor');
     cursor.style.display = 'block';
 
-    // Handle letter input.
+    // Handle letter input
     if (isLetter) {
         if (currentLetter) {
             addClass(currentLetter, key === expectedLetter ? 'correct' : 'incorrect');
@@ -148,7 +166,7 @@ document.getElementById('game').addEventListener('keyup', ev => {
                 addClass(currentLetter.nextSibling, 'current');
             }
         } else {
-            // No valid letter remains: append an extra letter.
+            // No valid letter remains: append an extra letter
             const incorrectLetter = document.createElement('span');
             incorrectLetter.innerHTML = key;
             incorrectLetter.className = 'letter incorrect extra';
@@ -156,7 +174,7 @@ document.getElementById('game').addEventListener('keyup', ev => {
         }
     }
 
-    // Handle Space key.
+    // Handle Space key
     if (isSpace) {
         if (expectedLetter !== ' ') {
             const lettersToInvalidate = [...document.querySelectorAll('.word.current .letter:not(.correct)')];
@@ -172,7 +190,7 @@ document.getElementById('game').addEventListener('keyup', ev => {
         addClass(currentWord.nextSibling.firstChild, 'current');
     }
 
-    // Handle Backspace.
+    // Handle Backspace
     if (isBackspace) {
         // If no current letter exists, it may be because extra letters were appended.
         if (!currentLetter) {
@@ -195,36 +213,18 @@ document.getElementById('game').addEventListener('keyup', ev => {
             updateCursor();
             return;
         }
-        // Normal Backspace behavior.
+        // Normal Backspace behavior
         if (currentLetter) {
-            if (isFirstLetter) {
-                removeClass(currentWord, 'current');
-                let prevWord = currentWord.previousSibling;
-                addClass(prevWord, 'current');
-                removeClass(currentLetter, 'current');
-                addClass(prevWord.lastChild, 'current');
-                removeClass(prevWord.lastChild, 'incorrect');
-                removeClass(prevWord.lastChild, 'correct');
-            } else {
+            if (currentLetter.previousSibling) {
                 removeClass(currentLetter, 'current');
                 addClass(currentLetter.previousSibling, 'current');
                 removeClass(currentLetter.previousSibling, 'incorrect');
                 removeClass(currentLetter.previousSibling, 'correct');
             }
-        } else {
-            // Fallback: if there is no current letter, check the last letter.
-            let lastLetter = currentWord.lastChild;
-            if (lastLetter && lastLetter.className.includes('extra')) {
-                lastLetter.remove();
-            } else if (lastLetter) {
-                addClass(lastLetter, 'current');
-                removeClass(lastLetter, 'incorrect');
-                removeClass(lastLetter, 'correct');
-            }
         }
     }
 
-    // Always update the cursor at the end.
+    // Always update the cursor at the end
     updateCursor();
 });
 
