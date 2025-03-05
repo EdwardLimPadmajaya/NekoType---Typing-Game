@@ -226,6 +226,19 @@ document.getElementById('game').addEventListener('keyup', ev => {
 
     // Always update the cursor at the end
     updateCursor();
+
+    // Move words up when they exceed the top of the container
+    if (currentWord.getBoundingClientRect().top > 250) {
+        const words = document.getElementById('words');
+        const margin = parseInt(words.style.marginTop || '0px');
+        words.style.marginTop = (margin - 35) + 'px';
+    }
+
+    // Move cursor
+    const nextLetter = document.querySelector('.letter.current');
+    const nextWord = document.querySelector('.word.current');
+    cursor.style.top = (nextLetter || nextWord).getBoundingClientRect().top + 2 + 'px';
+    cursor.style.left = (nextLetter || nextWord).getBoundingClientRect()[nextLetter ? 'left' : 'right'] + 'px';
 });
 
 document.getElementById('newGameBtn').addEventListener('click', () => {
